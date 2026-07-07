@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -6,25 +6,17 @@ import fitz
 import edge_tts
 import os
 import uuid
-import asyncio
-from pathlib import Path
 
 app = FastAPI()
 
-# -------------------------
 # Create directories
-# -------------------------
-
 UPLOAD_DIR = "uploads"
 OUTPUT_DIR = "outputs"
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# -------------------------
 # CORS
-# -------------------------
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -33,20 +25,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -------------------------
 # Serve generated audio
-# -------------------------
-
 app.mount(
     "/audio",
     StaticFiles(directory=OUTPUT_DIR),
     name="audio"
 )
 
-# -------------------------
 # Helpers
-# -------------------------
-
 def extract_text_from_pdf(pdf_path: str) -> str:
     doc = fitz.open(pdf_path)
 
@@ -59,36 +45,32 @@ def extract_text_from_pdf(pdf_path: str) -> str:
 
     return text
 
-
 def chunk_text(text: str, chunk_size: int = 4000):
     return [
         text[i:i + chunk_size]
         for i in range(0, len(text), chunk_size)
     ]
 
-
-async def generate_speech(text: str, output_file: str):
+async def generate_speech(text: str, output_file: str, voice: str):
     communicate = edge_tts.Communicate(
         text=text,
-        voice="en-US-AriaNeural"
+        voice=voice
     )
 
     await communicate.save(output_file)
 
-
-# -------------------------
 # Routes
-# -------------------------
-
 @app.get("/")
 def root():
     return {
         "message": "PDF to Audio API Running"
     }
 
-
 @app.post("/upload")
-async def upload_pdf(file: UploadFile = File(...)):
+async def upload_pdf(
+    file: UploadFile = File(...),
+    voice: str = Form("en-US-AriaNeural")
+):
 
     # Validate file
     if not file.filename.lower().endswith(".pdf"):
@@ -117,7 +99,6 @@ async def upload_pdf(file: UploadFile = File(...)):
                 detail="No readable text found in PDF"
             )
 
-        # Edge-TTS works better with chunks
         chunks = chunk_text(text, 4000)
 
         combined_text = "\n".join(chunks)
@@ -131,13 +112,15 @@ async def upload_pdf(file: UploadFile = File(...)):
 
         await generate_speech(
             combined_text,
-            audio_path
+            audio_path,
+            voice
         )
 
         return {
             "success": True,
             "audio_url": f"/audio/{audio_filename}",
-            "pages_processed": len(fitz.open(pdf_path))
+            "pages_processed": len(fitz.open(pdf_path)),
+            "voice_used": voice
         }
 
     except Exception as e:
