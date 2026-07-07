@@ -5,6 +5,7 @@ function App() {
   const [file, setFile] = useState(null);
   const [audioUrl, setAudioUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [voice, setVoice] = useState("en-US-AriaNeural");
 
   const uploadPDF = async () => {
@@ -13,34 +14,54 @@ function App() {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("voice", voice);
-
+    setProgress(0);
+    setLoading(true);
+    let progress = 0;
+    let timer;
     try {
-      setLoading(true);
+      timer = setInterval(() => {
+        progress += 8;
+
+        if (progress >= 90) {
+          progress = 90;
+        }
+
+        setProgress(progress);
+      }, 1200);
 
       const response = await axios.post(
         "http://127.0.0.1:8000/upload",
         formData,
       );
+      clearInterval(timer);
+
+      setProgress(100);
 
       setAudioUrl(`http://127.0.0.1:8000${response.data.audio_url}`);
     } catch (err) {
       console.error(err);
       alert("Upload failed");
     } finally {
-      setLoading(false);
+      clearInterval(timer);
+
+      setTimeout(() => {
+        setLoading(false);
+        setProgress(0);
+      }, 700);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-xl bg-white rounded-3xl shadow-xl p-8">
-        <h1 className="text-4xl font-bold text-center mb-2">PDF → Audio</h1>
+    <div className="min-h-screen bg-slate-100 flex justify-center pt-10 md:items-center md:pt-0 px-4">
+      <div className="w-full max-w-md md:max-w-xl bg-white rounded-3xl shadow-xl p-5 md:p-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-center mb-2">PDF → Audio</h1>
 
-        <p className="text-center text-gray-500 mb-8">
+        <p className="text-center text-gray-500 mb-6">
           Upload a PDF and convert it into an audiobook.
         </p>
 
-        <label className="block border-2 border-dashed border-gray-300 rounded-2xl p-10 text-center cursor-pointer hover:border-blue-500 transition">
+        <label className="block border-2 border-dashed border-gray-300 rounded-2xl p-6 md:p-10 
+        text-center cursor-pointer hover:border-blue-500 transition">
           <input
             type="file"
             accept=".pdf"
@@ -89,11 +110,33 @@ function App() {
             <option value="en-GB-RyanNeural">🇬🇧 British English (Male)</option>
           </select>
         </div>
+        {/* ADD */}
+        {loading && (
+          <div className="mt-6 border rounded-xl p-5 bg-gray-50">
+            <div className="flex justify-between mb-2">
+              <span className="font-medium">Generating Audio...</span>
 
+              <span className="text-sm text-gray-500">{progress}%</span>
+            </div>
+
+            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-black transition-all duration-500"
+                style={{
+                  width: `${progress}%`,
+                }}
+              />
+            </div>
+
+            <p className="text-sm text-gray-500 mt-3">
+              Large PDFs may take up to 2 minutes.
+            </p>
+          </div>
+        )}
         <button
           onClick={uploadPDF}
           disabled={loading || !file}
-          className="w-full mt-6 bg-black text-white py-3 rounded-xl hover:opacity-90 disabled:opacity-50"
+          className="w-full mt-5 bg-black text-white py-3 rounded-xl hover:opacity-90 disabled:opacity-50"
         >
           {loading ? "Generating Audio..." : "Convert PDF"}
         </button>
