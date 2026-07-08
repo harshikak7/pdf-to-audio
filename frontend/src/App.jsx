@@ -30,16 +30,14 @@ function App() {
       }, 1200);
 
       const response = await axios.post(
-  `${import.meta.env.VITE_API_URL}/upload`,
-  formData
-);
+        `${import.meta.env.VITE_API_URL}/upload`,
+        formData,
+      );
       clearInterval(timer);
 
       setProgress(100);
 
-      setAudioUrl(
-  `${import.meta.env.VITE_API_URL}${response.data.audio_url}`
-);
+      setAudioUrl(`${import.meta.env.VITE_API_URL}${response.data.audio_url}`);
     } catch (err) {
       console.error(err);
       alert("Upload failed");
@@ -54,16 +52,20 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex justify-center pt-10 md:items-center md:pt-0 px-4">
+   <div className="min-h-screen bg-slate-100 flex justify-center items-start md:items-center px-4 py-6 md:py-0">
       <div className="w-full max-w-md md:max-w-xl bg-white rounded-3xl shadow-xl p-5 md:p-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-center mb-2">PDF → Audio</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-center mb-2">
+          PDF → Audio
+        </h1>
 
         <p className="text-center text-gray-500 mb-6">
           Upload a PDF and convert it into an audiobook.
         </p>
 
-        <label className="block border-2 border-dashed border-gray-300 rounded-2xl p-6 md:p-10 
-        text-center cursor-pointer hover:border-blue-500 transition">
+        <label
+          className="block border-2 border-dashed border-gray-300 rounded-2xl p-6 md:p-10 
+        text-center cursor-pointer hover:border-blue-500 transition"
+        >
           <input
             type="file"
             accept=".pdf"
@@ -149,13 +151,12 @@ function App() {
 
             <audio controls className="w-full" src={audioUrl} />
 
-            <a
-              href={audioUrl}
-              download
-              className="block text-center mt-4 bg-green-600 text-white py-3 rounded-xl"
-            >
-              Download MP3
-            </a>
+           <a
+  href={`${import.meta.env.VITE_API_URL}/download/${audioUrl.split("/").pop()}`}
+  className="block text-center mt-4 bg-green-600 text-white py-3 rounded-xl"
+>
+  Download MP3
+</a>
           </div>
         )}
       </div>
