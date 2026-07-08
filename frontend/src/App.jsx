@@ -30,14 +30,16 @@ function App() {
       }, 1200);
 
       const response = await axios.post(
-        "http://127.0.0.1:8000/upload",
-        formData,
-      );
+  `${import.meta.env.VITE_API_URL}/upload`,
+  formData
+);
       clearInterval(timer);
 
       setProgress(100);
 
-      setAudioUrl(`http://127.0.0.1:8000${response.data.audio_url}`);
+      setAudioUrl(
+  `${import.meta.env.VITE_API_URL}${response.data.audio_url}`
+);
     } catch (err) {
       console.error(err);
       alert("Upload failed");
